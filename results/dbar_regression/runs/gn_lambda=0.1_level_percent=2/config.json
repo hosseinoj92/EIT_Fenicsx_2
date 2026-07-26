@@ -1,0 +1,42 @@
+{
+  "id": "gn_lambda=0.1_level_percent=2",
+  "algorithm": "gn",
+  "mesh_label": "coarse",
+  "mesh_cfg": {
+    "label": "coarse",
+    "h_center": 0.16,
+    "h_edge": 0.11,
+    "grading": 1.0,
+    "n_per_electrode": 8,
+    "n_per_gap": 4,
+    "algorithm": 6,
+    "optimize": true
+  },
+  "noise": {
+    "model": "relative_to_max",
+    "level_percent": 2.0,
+    "seed": 0,
+    "floor_fraction": 0.0,
+    "electrode_gain_percent": 0.0,
+    "electrode_offset": 0.0,
+    "use_statistical_weighting": true,
+    "weight_relative_floor": 0.001
+  },
+  "params": {
+    "lambda": 0.1,
+    "lambda_scaling": "auto",
+    "max_iter": 12,
+    "sigma_min": 0.01,
+    "sigma_max": 5.0,
+    "prior": "laplacian",
+    "prior_eps": 0.0001,
+    "prior_corrlength": 0.2,
+    "prior_std": 0.15,
+    "tol": 1e-05,
+    "line_search": "armijo",
+    "n_line_search": 6,
+    "device": "cpu",
+    "background": 1.0,
+    "verbose": false
+  }
+}

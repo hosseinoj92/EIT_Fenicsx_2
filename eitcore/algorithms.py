@@ -14,6 +14,7 @@ Registered names
 ``tv``      Gauss-Newton with a smoothed total-variation prior
 ``l1``      L1-sparsity (Gehre et al., iterative soft thresholding)
 ``linear``  One-step linearised difference reconstruction
+``dbar``    D-bar / Nachman direct method (nonlinear Fourier transform)
 """
 
 from dataclasses import dataclass, field
@@ -29,6 +30,7 @@ from .gauss_newton import (
     LinearisedReconstruction,
 )
 from .sparsity_reconstruction import L1Sparsity
+from .dbar import DbarSolver
 from .regulariser import build_prior
 
 
@@ -156,6 +158,43 @@ def _run_l1(solver, U_meas, params, ctx):
     return out, rec
 
 
+def _run_dbar(solver, U_meas, params, ctx):
+    # The homogeneous reference Lambda_1 depends only on the solver, the drive
+    # and the background, never on the measurements, so one forward solve is
+    # shared by every run of a sweep.
+    cache = ctx.get("dbar_reference_cache")
+    key = (id(solver), float(params.get("background", 1.0)))
+    if cache is not None and key in cache:
+        reference = cache[key]
+    else:
+        sig = Function(solver.V_sigma)
+        sig.x.array[:] = float(params.get("background", 1.0))
+        _, reference = solver.forward_solve(sig)
+        reference = np.asarray(reference)
+        if cache is not None:
+            cache[key] = reference
+
+    rec = DbarSolver(
+        solver,
+        backCond=params.get("background", 1.0),
+        R=params["R"],
+        k_grid=params["k_grid"],
+        z_grid=params["z_grid"],
+        scattering=params["scattering"],
+        clip=(params["sigma_min"], params["sigma_max"]),
+        contact_correction=params.get("contact_correction", True),
+        quad_order=params.get("quad_order", 4),
+        dn_rcond=params.get("dn_rcond"),
+        t_cutoff=params.get("t_cutoff"),
+        reference=reference,
+    )
+    out = rec.forward(
+        Umeas=np.asarray(U_meas).reshape(-1, solver.L),
+        verbose=params.get("verbose", False),
+    )
+    return out, rec
+
+
 def _run_linear(solver, U_meas, params, ctx):
     R = _prior_matrix(solver, params, ctx.get("prior_cache"))
     rec = LinearisedReconstruction(
@@ -239,6 +278,28 @@ REGISTRY: Dict[str, AlgorithmSpec] = {
             "initial_step_size": 0.05,
         },
     ),
+    "dbar": AlgorithmSpec(
+        name="dbar",
+        label="D-bar (Nachman direct method)",
+        runner=_run_dbar,
+        defaults={
+            # R is the ONLY regularisation parameter: the scattering transform
+            # is truncated to |k| <= R.  Small R -> smooth, stable, low
+            # contrast; large R -> sharper but eventually pure noise, because
+            # the transform is bilinear in e^{ikz} and its error grows like
+            # e^{2|k|}.  3.5-4.5 suits 16-32 electrodes; sweep it and watch the
+            # "t_growth" diagnostic (it must stay below ~1).
+            "R": 4.0,
+            "scattering": "exp",     # exp = Born (fast, robust) | bie = full
+            "k_grid": 64,            # power of two
+            "z_grid": 64,
+            "sigma_min": 0.01,
+            "sigma_max": 5.0,
+            "contact_correction": True,
+            "quad_order": 4,
+            "t_cutoff": None,
+        },
+    ),
     "linear": AlgorithmSpec(
         name="linear",
         label="One-step linearised",
@@ -311,4 +372,7 @@ def run(name, solver, U_meas, params, ctx=None):
         "U_reconstructed": np.asarray(U_rec),
         "label": spec.label,
     }
+    diag = getattr(rec, "diagnostics", None)
+    if diag:
+        info["diagnostics"] = diag
     return sigma, info

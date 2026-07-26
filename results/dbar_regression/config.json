@@ -1,0 +1,101 @@
+{
+  "ground_truth": "GT_simulated_result/two_inclusions_16e",
+  "output": {
+    "root": "results",
+    "run_name": "dbar_regression",
+    "save_per_run_figures": true,
+    "save_csv": true,
+    "save_npz": true
+  },
+  "noise": {
+    "model": "relative_to_max",
+    "level_percent": [
+      0.5,
+      2.0
+    ],
+    "seed": 0,
+    "floor_fraction": 0.0,
+    "electrode_gain_percent": 0.0,
+    "electrode_offset": 0.0,
+    "use_statistical_weighting": true,
+    "weight_relative_floor": 0.001
+  },
+  "recon_mesh": [
+    {
+      "label": "coarse",
+      "h_center": 0.16,
+      "h_edge": 0.11,
+      "grading": 1.0,
+      "n_per_electrode": 8,
+      "n_per_gap": 4,
+      "algorithm": 6,
+      "optimize": true
+    }
+  ],
+  "common": {
+    "device": "cpu",
+    "sigma_min": 0.01,
+    "sigma_max": 5.0,
+    "background": null,
+    "verbose": false
+  },
+  "algorithms": {
+    "gn": {
+      "lambda": [
+        0.03,
+        0.1,
+        0.3
+      ],
+      "max_iter": 12,
+      "prior": "laplacian",
+      "prior_eps": 0.0001,
+      "line_search": "armijo"
+    },
+    "tv": {
+      "lambda": [
+        3.0,
+        10.0
+      ],
+      "beta": 1e-06,
+      "max_iter": 10
+    },
+    "linear": {
+      "lambda": [
+        0.3
+      ],
+      "prior": "laplacian"
+    },
+    "l1": {
+      "alpha": [
+        1e-05
+      ],
+      "kappa": 0.0285,
+      "max_iter": 200,
+      "initial_step_size": 0.05
+    },
+    "dbar": {
+      "R": [
+        3.0,
+        3.5,
+        4.0
+      ],
+      "scattering": "exp"
+    }
+  },
+  "metrics": {
+    "grid_resolution": 200,
+    "roi_threshold": 0.05,
+    "rank_by": "rel_L2_roi"
+  },
+  "plot": {
+    "enabled": true,
+    "cmap": "turbo",
+    "vmin": null,
+    "vmax": null,
+    "max_cols": 5,
+    "dpi": 150,
+    "comparison_figure": true,
+    "metric_charts": true,
+    "convergence_curves": true
+  }
+}

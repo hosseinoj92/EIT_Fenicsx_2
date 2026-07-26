@@ -22,6 +22,7 @@ from .gauss_newton import (
 )
 from .reconstructor import Reconstructor
 from .sparsity_reconstruction import L1Sparsity
+from .dbar import DbarSolver
 from .utils import (
     current_method,
     default_n_patterns,
@@ -42,6 +43,7 @@ __all__ = [
     "GaussNewtonSolverTV",
     "LinearisedReconstruction",
     "L1Sparsity",
+    "DbarSolver",
     "Reconstructor",
     "current_method",
     "default_n_patterns",

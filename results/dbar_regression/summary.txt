@@ -1,0 +1,54 @@
+EIT reconstruction experiment
+==============================================================================
+ground truth : GT_simulated_result/two_inclusions_16e
+phantom      : two_inclusions_16e  (5888 truth cells)
+runs         : 20  (0 failed)
+varying axes : ['R', 'algorithm', 'lambda', 'noise.level_percent']
+ranked by    : rel_L2_roi (lower is better)
+wall time    : 79.2s
+
+Ranking
+------------------------------------------------------------------------------
+run                                        rel_L2_roi   rel_L1   dice   dyn    chi2      s
+dbar_R=3_level_percent=2                       0.2503   0.2736  0.686  0.81    9.33    4.7
+dbar_R=4_level_percent=0.5                     0.3400   0.2958  0.510  1.30   93.56    5.2
+tv_lambda=3_level_percent=0.5                  0.3464   0.2263  0.610  0.79    0.73    0.3
+dbar_R=3.5_level_percent=0.5                   0.3736   0.2261  0.684  0.69   61.89    4.2
+tv_lambda=10_level_percent=0.5                 0.3769   0.1844  0.469  0.60    0.76    0.3
+gn_lambda=0.03_level_percent=0.5               0.3795   0.2120  0.621  0.79    0.74    1.5
+gn_lambda=0.1_level_percent=0.5                0.4059   0.1899  0.578  0.66    0.76    0.3
+gn_lambda=0.3_level_percent=2                  0.4194   0.2730  0.461  0.75    0.77    0.5
+gn_lambda=0.1_level_percent=2                  0.4200   0.3452  0.423  0.84    0.80    0.5
+l1_level_percent=2                             0.4246   0.1566  0.614  0.68    0.93    3.2
+gn_lambda=0.3_level_percent=0.5                0.4314   0.1821  0.538  0.60    0.79    0.4
+tv_lambda=10_level_percent=2                   0.4326   0.3585  0.363  0.85    0.80    0.4
+l1_level_percent=0.5                           0.4391   0.1546  0.619  0.62    3.58    6.0
+linear_lambda=0.3_level_percent=2              0.4601   0.2755  0.319  0.70    3.98    0.0
+linear_lambda=0.3_level_percent=0.5            0.4661   0.1920  0.473  0.60   13.26    0.0
+dbar_R=3_level_percent=0.5                     0.4774   0.2078  0.495  0.42   36.95   11.7
+tv_lambda=3_level_percent=2                    0.4801   0.3971  0.383  0.94    1.05    0.4
+gn_lambda=0.03_level_percent=2                 0.4881   0.4325  0.374  0.98    1.18    0.5
+dbar_R=3.5_level_percent=2                     0.5222   0.5208  0.631  1.70   33.71    6.9
+dbar_R=4_level_percent=2                       0.6211   1.0084  0.369  1.76  144.70   13.6
+
+Best: dbar_R=3_level_percent=2  (rel_L2_roi = 0.2503)
+
+Best per algorithm
+------------------------------------------------------------------------------
+  dbar       dbar_R=3_level_percent=2                   rel_L2_roi=0.2503
+  gn         gn_lambda=0.03_level_percent=0.5           rel_L2_roi=0.3795
+  l1         l1_level_percent=2                         rel_L2_roi=0.4246
+  linear     linear_lambda=0.3_level_percent=2          rel_L2_roi=0.4601
+  tv         tv_lambda=3_level_percent=0.5              rel_L2_roi=0.3464
+
+Notes
+------------------------------------------------------------------------------
+chi2 is the chi-square per degree of freedom of the data residual.
+  ~1  the reconstruction explains the data to within the noise
+  <<1 the noise is being fitted (under-regularised)
+  >>1 the data is not explained (over-regularised)
+dyn is the recovered contrast as a fraction of the true contrast;
+  EIT reconstructions are normally well below 1 (smoothing).
+
+Per-run outputs are in runs/<run_id>/ .
+The full parameter x metric table is runs.csv .

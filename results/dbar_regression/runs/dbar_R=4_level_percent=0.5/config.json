@@ -1,0 +1,39 @@
+{
+  "id": "dbar_R=4_level_percent=0.5",
+  "algorithm": "dbar",
+  "mesh_label": "coarse",
+  "mesh_cfg": {
+    "label": "coarse",
+    "h_center": 0.16,
+    "h_edge": 0.11,
+    "grading": 1.0,
+    "n_per_electrode": 8,
+    "n_per_gap": 4,
+    "algorithm": 6,
+    "optimize": true
+  },
+  "noise": {
+    "model": "relative_to_max",
+    "level_percent": 0.5,
+    "seed": 0,
+    "floor_fraction": 0.0,
+    "electrode_gain_percent": 0.0,
+    "electrode_offset": 0.0,
+    "use_statistical_weighting": true,
+    "weight_relative_floor": 0.001
+  },
+  "params": {
+    "R": 4.0,
+    "scattering": "exp",
+    "k_grid": 64,
+    "z_grid": 64,
+    "sigma_min": 0.01,
+    "sigma_max": 5.0,
+    "contact_correction": true,
+    "quad_order": 4,
+    "t_cutoff": null,
+    "device": "cpu",
+    "background": 1.0,
+    "verbose": false
+  }
+}

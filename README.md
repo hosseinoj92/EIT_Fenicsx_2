@@ -376,6 +376,15 @@ Details that make this pleasant in practice:
 | `tv` | Gauss-Newton, total variation | fast | sharp edges, best for piecewise-constant targets |
 | `l1` | L1-sparsity (Gehre et al. 2012) | slow | flat background, best localisation |
 | `linear` | one-step linearised | instant | baseline; cannot handle high contrast |
+| `dbar` | D-bar / Nachman direct method | fast | no iteration, no prior, no forward model in the loop |
+
+The first four are **iterative optimisation**: they minimise a data misfit plus
+a penalty, and every iteration costs forward solves. `dbar` is a different
+animal — it is a **direct inversion formula**, evaluated once. It never calls
+the forward model except to simulate a homogeneous reference, so its cost does
+not depend on the contrast, the mesh or the number of iterations, and it cannot
+get stuck in a local minimum. What it costs instead is that its only knob is a
+low-pass filter, so it will not give you sharp edges.
 
 ### Shared
 
@@ -428,6 +437,63 @@ Minimises `½‖F(σ) − U‖²_W + λ·Σ√((Lσ)² + β)`.
 essentially free — a good sanity baseline and the right choice for
 time-difference imaging.
 
+### `dbar` — the D-bar method (Nachman's direct algorithm)
+
+A nonlinear Fourier transform. The measurements are turned into a *scattering
+transform* `t(k)` living in a complex frequency plane, `t` is low-pass filtered
+by throwing away `|k| > R`, and a D-bar (`∂/∂k̄`) equation transforms it back
+into a conductivity:
+
+```
+U_meas ──▶ Λ_σ − Λ₁ ──▶ t(k) ──▶ μ(z,0) ──▶ σ(z) = μ(z,0)²
+           DN map      scattering  D-bar eq.
+```
+
+| parameter | meaning |
+|---|---|
+| `R` | truncation radius of the scattering transform — the **only** regularisation parameter |
+| `scattering` | `exp` (Born approximation, default) or `bie` (full transform via Nachman's boundary integral equation) |
+| `k_grid` | points per axis of the k-plane grid; power of two, default 64 |
+| `z_grid` | pixels per axis of the reconstruction, default 64 |
+| `contact_correction` | subtract the known contact-impedance shunt from the ND matrix (default on) |
+| `t_cutoff` | optional hard cap on `|t|`; see below |
+
+**`R` replaces `lambda`.** Small `R` gives a smooth, stable, low-contrast image;
+large `R` a sharper one, until the transform blows up and the image becomes
+noise. Unlike `lambda` there is no auto-scaling to do — `R` is a frequency in a
+plane that has already been normalised to the unit disk, so the same value
+means the same thing on any mesh, any radius and any background. On this
+framework's default geometry (16 electrodes covering half the boundary):
+
+| noise | best `R` | `rel_L2_roi` there | `t_growth` there | first `R` that fails |
+|---|---|---|---|---|
+| none | ≥ 6, still improving | 0.33 | 8.6 | — |
+| 0.5 % | 4.0 | 0.34 | 13.5 | 4.5 (`t_growth` 25) |
+| 2 % | 3.0 | 0.25 | 14.5 | 3.5 (`t_growth` 20) |
+
+(measured on `two_inclusions_16e`, 16 electrodes, adjacent drive.)
+
+Sweep it — `"dbar": {"R": [3.0, 3.5, 4.0]}` — and read `t_growth` from the run
+summary. It measures how fast `|t|` is still growing at the truncation radius;
+above about 20 the transform has blown up, the image is amplified noise, and a
+warning is printed. Note the pattern above: the *best* `R` sits just below that,
+so a healthy `t_growth` of 10–15 is the target, not a small one. `t_cutoff`
+zeroes `t` wherever `|t|` exceeds it, as a blunt alternative to lowering `R`.
+
+**`exp` vs `bie`.** `exp` replaces the unknown CGO solution by its asymptotic
+value `e^{ikz}` — this is the Born approximation `t^exp`, the variant used for
+essentially every published D-bar reconstruction from real data and the one
+Knudsen–Lassas–Mueller–Siltanen proved is a regularisation strategy. `bie`
+solves Nachman's boundary integral equation for the true CGO trace using the
+exact Faddeev Green's function; it recovers contrast slightly better at moderate
+`R` but is more fragile, because that integral equation amplifies DN-map error
+like `e^{2|k|}`.
+
+**Where D-bar differs in practice.** It reconstructs on a pixel grid and is then
+sampled onto the mesh, so the reconstruction mesh only affects the homogeneous
+reference and the display, not the inversion. Being direct, there is no
+convergence curve — the `convergence.png` figure simply skips it.
+
 ---
 
 ## 9. How to choose parameters
@@ -467,6 +533,13 @@ measurements too:
 
 In practice the image errors bottom out right where χ² crosses 1. So: sweep
 `lambda` over decades, pick the run with χ² closest to 1, then refine.
+
+**This does not apply to `dbar`.** χ² measures how well a reconstruction
+*reproduces the measurements*, which is the objective the other four algorithms
+minimise. D-bar never looks at the data residual — it evaluates an inversion
+formula — so its χ² routinely lands in the tens or hundreds even when the image
+is the best in the sweep. Tune `R` with `t_growth` (§8) and rank D-bar runs by
+`rel_L2_roi` or `dice`, not by χ².
 
 ### `alpha` for `l1` is *not* auto-scaled
 
@@ -605,9 +678,11 @@ means anything.
 
 ```bash
 python tests/test_framework.py       # 115 checks
+python tests/test_dbar.py            #  54 checks, the D-bar method
 ```
 
-It verifies properties that must hold independently of the implementation:
+`test_framework.py` verifies properties that must hold independently of the
+implementation:
 
 - charge conservation, rank and zero-row freedom of every drive pattern
 - rejection of non-circular geometry and invalid meshing parameters
@@ -625,6 +700,30 @@ It verifies properties that must hold independently of the implementation:
 - that one `lambda` behaves identically at 1× and 10× drive amplitude
 - ground-truth bundle round trip, sweep expansion and run naming
 
+`test_dbar.py` checks the D-bar chain against closed-form results rather than
+against a previous output of the code:
+
+- Faddeev's Green's function: harmonicity away from the origin, the `−log|z|/2π`
+  singularity with the right constant, and the exact scaling `G_k(z) = G_1(kz)`
+- the Cauchy transform `(1/πk) ∗` against an analytically solvable D-bar
+  problem, and its convergence under grid refinement
+- the **Neumann-to-Dirichlet matrix to machine precision** against the exact
+  projection of the continuum ND map of the unit disk — this pins down every
+  electrode-area, radius and background factor in one check
+- DN eigenvalues against `Λ₁e^{inθ} = |n|e^{inθ}`, and that the error grows with
+  the mode number (which is *why* the transform must be truncated)
+- the scattering transform against the Calderón/Born formula
+  `t(k) ≈ −2|k|² δσ̂(−2k₁, 2k₂)` for an **off-centre, non-radial** perturbation.
+  This is the check that pins down the sign, the conjugation and the orientation
+  of the k-plane; a mirrored or rotated reconstruction fails here and nowhere
+  else
+- `t^bie → t^exp` as the contrast goes to zero (the Born limit), and both vanish
+  when `Λ_σ = Λ₁`
+- exact equivariance of the whole pipeline under `σ → cσ` and invariance under a
+  change of domain radius
+- localisation of a real inclusion from CEM/FEM data, including that a mirrored
+  phantom gives a mirrored image
+
 ---
 
 ## 14. Troubleshooting
@@ -636,6 +735,21 @@ far below 1 you are fitting noise. Increase `lambda` by decades.
 large; `chi2` will be ≫ 1.
 
 **`l1` gives `dynamic_range = 0`.** `alpha` too large — see §9.
+
+**`dbar` warns that "the scattering transform is blowing up".** `R` is too large
+for this noise level; the image is amplified error, not signal. Lower `R` by
+0.5–1 and compare `t_growth` across the sweep.
+
+**`dbar` gives a washed-out, almost flat image.** The opposite problem: `R` is
+too small. Raise it while `t_growth` stays below ~15. Note that D-bar always
+under-states contrast — it is a low-pass filtered reconstruction, so a σ = 3
+inclusion typically comes back around 1.5–2.5. Compare shapes and positions, not
+peak values; `dice` and `rel_L2_roi` are the metrics to rank it by.
+
+**`dbar` raises "the injection patterns are rank deficient".** D-bar has to
+invert the measured ND map, so it needs `L − 1` linearly independent patterns.
+Drive methods 2, 3, 4 and 5 all provide them; method 1 (opposite) only gives
+`L/2` and cannot be used.
 
 **Segfault on macOS.** A collision between torch's OpenMP runtime and
 PETSc/OpenBLAS. The library pins torch to one thread at import to avoid it;

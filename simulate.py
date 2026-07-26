@@ -147,6 +147,14 @@ CONFIG = {
             "max_iter": 200,
             "initial_step_size": 0.05,
         },
+        # D-bar is direct (no iteration, no prior).  Its single regularisation
+        # parameter is the truncation radius R of the scattering transform; see
+        # the note in algorithms.py.  Watch "t_growth" in the run summary: if it
+        # exceeds ~1, R is too large for this noise level.
+        "dbar": {
+            "R": [3.0, 3.5, 4.0],
+            "scattering": "exp",     # exp = Born approximation | bie = full
+        },
     },
 
     # ── metrics ──────────────────────────────────────────────────────────
@@ -444,6 +452,7 @@ def run_experiment(cfg):
 
     results = []
     prior_cache = {}
+    dbar_reference_cache = {}
     solver_cache = {}
 
     for gkey, group in itertools.groupby(runs_sorted, key=group_key):
@@ -474,7 +483,11 @@ def run_experiment(cfg):
         log(f"noise: {noise_cfg.get('model')} @ "
             f"{noise_cfg.get('level_percent')}%  ->  SNR {snr:.1f} dB")
 
-        ctx = {"GammaInv": GammaInv, "prior_cache": prior_cache}
+        ctx = {
+            "GammaInv": GammaInv,
+            "prior_cache": prior_cache,
+            "dbar_reference_cache": dbar_reference_cache,
+        }
 
         for run in group:
             params = algo_registry.resolve_params(
