@@ -1,0 +1,45 @@
+EIT reconstruction experiment
+==============================================================================
+ground truth : GT_simulated_result/two_inclusions_16e
+phantom      : two_inclusions_16e  (5888 truth cells)
+runs         : 12  (0 failed)
+varying axes : ['algorithm', 'mesh']
+ranked by    : rel_L2_roi (lower is better)
+wall time    : 23.8s
+
+Ranking
+------------------------------------------------------------------------------
+run                                        rel_L2_roi   rel_L1   dice   dyn    chi2      s
+tv_mesh=medium                                 0.3695   0.3165  0.477  0.89    0.87    0.3
+tv_mesh=coarse                                 0.3763   0.3200  0.378  0.77    0.74    0.2
+tv_mesh=edge_refined                           0.3763   0.3390  0.579  0.95    0.87    0.4
+gn_mesh=medium                                 0.3917   0.2905  0.541  0.87    0.76    0.4
+gn_mesh=edge_refined                           0.3956   0.2983  0.612  0.88    0.78    0.4
+gn_mesh=coarse                                 0.4024   0.2546  0.462  0.68    0.76    1.1
+l1_mesh=medium                                 0.4413   0.1447  0.604  0.61    1.36    2.0
+l1_mesh=coarse                                 0.4506   0.1725  0.599  0.56    1.08    3.4
+l1_mesh=edge_refined                           0.4547   0.1386  0.581  0.58    1.00    2.0
+linear_mesh=medium                             0.4604   0.2235  0.408  0.65    7.66    0.0
+linear_mesh=edge_refined                       0.4630   0.2235  0.413  0.66    7.55    0.0
+linear_mesh=coarse                             0.4647   0.2202  0.393  0.59    5.40    0.0
+
+Best: tv_mesh=medium  (rel_L2_roi = 0.3695)
+
+Best per algorithm
+------------------------------------------------------------------------------
+  gn         gn_mesh=medium                             rel_L2_roi=0.3917
+  l1         l1_mesh=medium                             rel_L2_roi=0.4413
+  linear     linear_mesh=medium                         rel_L2_roi=0.4604
+  tv         tv_mesh=medium                             rel_L2_roi=0.3695
+
+Notes
+------------------------------------------------------------------------------
+chi2 is the chi-square per degree of freedom of the data residual.
+  ~1  the reconstruction explains the data to within the noise
+  <<1 the noise is being fitted (under-regularised)
+  >>1 the data is not explained (over-regularised)
+dyn is the recovered contrast as a fraction of the true contrast;
+  EIT reconstructions are normally well below 1 (smoothing).
+
+Per-run outputs are in runs/<run_id>/ .
+The full parameter x metric table is runs.csv .

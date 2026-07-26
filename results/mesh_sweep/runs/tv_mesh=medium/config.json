@@ -1,0 +1,37 @@
+{
+  "id": "tv_mesh=medium",
+  "algorithm": "tv",
+  "mesh_label": "medium",
+  "mesh_cfg": {
+    "label": "medium",
+    "h_center": 0.13,
+    "h_edge": 0.09,
+    "grading": 1.0,
+    "n_per_electrode": 8,
+    "n_per_gap": 4
+  },
+  "noise": {
+    "model": "relative_to_max",
+    "level_percent": 1.0,
+    "seed": 0,
+    "floor_fraction": 0.0,
+    "electrode_gain_percent": 0.0,
+    "electrode_offset": 0.0,
+    "use_statistical_weighting": true,
+    "weight_relative_floor": 0.001
+  },
+  "params": {
+    "lambda": 5.0,
+    "lambda_scaling": "auto",
+    "beta": 1e-06,
+    "max_iter": 10,
+    "sigma_min": 0.01,
+    "sigma_max": 5.0,
+    "tol": 1e-05,
+    "line_search": "armijo",
+    "n_line_search": 6,
+    "device": "cpu",
+    "background": 1.0,
+    "verbose": false
+  }
+}

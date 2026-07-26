@@ -1,0 +1,38 @@
+EIT ground-truth bundle
+============================================================
+name              : two_inclusions_16e
+created           : 2026-07-26 11:17:47
+
+Geometry / truth mesh   (circular cross-section)
+------------------------------------------------------------
+radius            : 1.0
+cells / nodes     : 5888 / 3113
+element size h    : 0.0120 .. 0.0632
+target h_c / h_e  : 0.055 / 0.03  (grading 1.0)
+mesh quality      : min 0.652, mean 0.981
+domain area       : 3.141213  (exact 3.141593)
+
+Electrodes / drive
+------------------------------------------------------------
+electrodes L      : 16
+electrode width   : 12.0 deg
+ring offset       : 0.0 deg
+contact impedance : 0.005
+drive method      : 2 (adjacent)
+patterns          : 15
+amplitude         : 1.0
+
+Phantom
+------------------------------------------------------------
+bg=1; circle@[0.42, 0.34]=3; ellipse@[-0.4, -0.28]=0.2
+sigma range       : [0.2, 3]
+
+Measurements (noise-free)
+------------------------------------------------------------
+shape             : (15, 16)
+voltage range     : [-0.666862, 0.663939]
+gauge sum_i U_i   : 3.886e-16
+
+This data was generated on the mesh stored as truth_mesh.msh.
+Reconstruct on a DIFFERENT (coarser) mesh in simulate.py to avoid the
+inverse crime.

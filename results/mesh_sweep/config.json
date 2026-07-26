@@ -1,0 +1,94 @@
+{
+  "ground_truth": "GT_simulated_result/two_inclusions_16e",
+  "output": {
+    "root": "results",
+    "run_name": "mesh_sweep",
+    "save_per_run_figures": true,
+    "save_csv": true,
+    "save_npz": true
+  },
+  "noise": {
+    "model": "relative_to_max",
+    "level_percent": [
+      1.0
+    ],
+    "seed": 0,
+    "floor_fraction": 0.0,
+    "electrode_gain_percent": 0.0,
+    "electrode_offset": 0.0,
+    "use_statistical_weighting": true,
+    "weight_relative_floor": 0.001
+  },
+  "recon_mesh": [
+    {
+      "label": "coarse",
+      "h_center": 0.2,
+      "h_edge": 0.14,
+      "grading": 1.0,
+      "n_per_electrode": 8,
+      "n_per_gap": 4
+    },
+    {
+      "label": "medium",
+      "h_center": 0.13,
+      "h_edge": 0.09,
+      "grading": 1.0,
+      "n_per_electrode": 8,
+      "n_per_gap": 4
+    },
+    {
+      "label": "edge_refined",
+      "h_center": 0.2,
+      "h_edge": 0.07,
+      "grading": 2.0,
+      "n_per_electrode": 10,
+      "n_per_gap": 5
+    }
+  ],
+  "common": {
+    "device": "cpu",
+    "sigma_min": 0.01,
+    "sigma_max": 5.0,
+    "background": null,
+    "verbose": false
+  },
+  "algorithms": {
+    "gn": {
+      "lambda": [
+        0.05
+      ]
+    },
+    "tv": {
+      "lambda": [
+        5.0
+      ]
+    },
+    "l1": {
+      "alpha": [
+        1e-05
+      ],
+      "max_iter": 150
+    },
+    "linear": {
+      "lambda": [
+        0.3
+      ]
+    }
+  },
+  "metrics": {
+    "grid_resolution": 200,
+    "roi_threshold": 0.05,
+    "rank_by": "rel_L2_roi"
+  },
+  "plot": {
+    "enabled": true,
+    "cmap": "turbo",
+    "vmin": null,
+    "vmax": null,
+    "max_cols": 5,
+    "dpi": 150,
+    "comparison_figure": true,
+    "metric_charts": true,
+    "convergence_curves": true
+  }
+}

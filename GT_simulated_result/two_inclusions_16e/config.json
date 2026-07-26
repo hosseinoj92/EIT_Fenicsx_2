@@ -1,0 +1,72 @@
+{
+  "name": "two_inclusions_16e",
+  "output_root": "GT_simulated_result",
+  "overwrite": true,
+  "random_seed": 16,
+  "mesh": {
+    "radius": 1.0,
+    "n_electrodes": 16,
+    "electrode_width_deg": 12.0,
+    "electrode_offset_deg": 0.0,
+    "n_per_electrode": 10,
+    "n_per_gap": 5,
+    "h_center": 0.055,
+    "h_edge": 0.03,
+    "grading": 1.0,
+    "algorithm": 6,
+    "optimize": true
+  },
+  "L": 16,
+  "contact_impedance": 0.005,
+  "drive": {
+    "method": 2,
+    "n_patterns": 15,
+    "amplitude": 1.0
+  },
+  "phantom": {
+    "background": 1.0,
+    "inclusions": [
+      {
+        "shape": "circle",
+        "center": [
+          0.42,
+          0.34
+        ],
+        "radius": 0.22,
+        "value": 3.0
+      },
+      {
+        "shape": "ellipse",
+        "center": [
+          -0.4,
+          -0.28
+        ],
+        "semi_axes": [
+          0.28,
+          0.17
+        ],
+        "angle_deg": 35.0,
+        "value": 0.2
+      }
+    ]
+  },
+  "plot": {
+    "enabled": true,
+    "cmap": "turbo",
+    "vmin": null,
+    "vmax": null,
+    "show_mesh": false,
+    "show_electrodes": true,
+    "dpi": 160
+  },
+  "mesh_info": {
+    "path": "data/meshes/disk_R1_L16_h0.055-0.03_c62bc6454d.msh",
+    "n_cells": 5888,
+    "n_nodes": 3113,
+    "h_min": 0.011988225903259654,
+    "h_max": 0.0631563392931443,
+    "area": 3.141213493003543,
+    "quality_min": 0.6522462018511466,
+    "quality_mean": 0.9810770224169209
+  }
+}

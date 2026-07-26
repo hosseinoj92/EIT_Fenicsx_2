@@ -1,0 +1,27 @@
+{
+  "background": 1.0,
+  "inclusions": [
+    {
+      "shape": "circle",
+      "center": [
+        0.42,
+        0.34
+      ],
+      "radius": 0.22,
+      "value": 3.0
+    },
+    {
+      "shape": "ellipse",
+      "center": [
+        -0.4,
+        -0.28
+      ],
+      "semi_axes": [
+        0.28,
+        0.17
+      ],
+      "angle_deg": 35.0,
+      "value": 0.2
+    }
+  ]
+}
