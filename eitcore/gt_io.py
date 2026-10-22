@@ -168,8 +168,14 @@ def load_ground_truth(path):
                 f"(no measurements.npz). Candidates: {[d.name for d in subs]}"
             )
 
-    sig = np.load(p / "sigma_true.npz")
     meas = np.load(p / "measurements.npz")
+    if "U_v" in meas:
+        raise ValueError(
+            "This is an SI 2D/3D AC result. Load its config.json in "
+            "physical_eit.py --gui, or run physical_eit.py --config <config.json>. "
+            "simulate.py uses the original real-valued 2D benchmark bundles."
+        )
+    sig = np.load(p / "sigma_true.npz")
 
     with open(p / "config.json") as fh:
         config = json.load(fh)

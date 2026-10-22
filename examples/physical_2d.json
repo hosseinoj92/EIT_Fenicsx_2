@@ -1,0 +1,76 @@
+{
+  "name": "si_2d",
+  "output_root": "results/physical",
+  "mesh": {
+    "dimension": 2,
+    "radius": 0.05,
+    "height": 0.1,
+    "n_electrodes": 8,
+    "electrodes_per_ring": 8,
+    "n_rings": 2,
+    "ring_spacing": 0.035,
+    "electrode_diameter": 0.012,
+    "electrode_width_deg": 14.0,
+    "h_center": 0.014,
+    "h_edge": 0.004
+  },
+  "thickness": 0.02,
+  "frequencies_hz": [
+    1000.0,
+    10000.0,
+    100000.0
+  ],
+  "drive": {
+    "current_a": 0.001,
+    "protocol": "mixed"
+  },
+  "contact": {
+    "resistance_ohm_m2": 0.005,
+    "capacitance_f_m2": 0.0
+  },
+  "background": {
+    "conductivity_s_m": 0.2,
+    "relative_permittivity": 10000.0
+  },
+  "inclusions": [
+    {
+      "shape": "circle",
+      "center_m": [
+        0.015,
+        0.01
+      ],
+      "radius_m": 0.012,
+      "material": {
+        "conductivity_s_m": 0.5,
+        "relative_permittivity": 30000.0
+      }
+    }
+  ],
+  "reconstruction": {
+    "enabled": true,
+    "frequency_hz": 10000.0,
+    "reconstruct_permittivity": true,
+    "h_center": 0.025,
+    "h_edge": 0.008,
+    "iterations": 4,
+    "regularization": 0.05,
+    "sigma_min_s_m": 0.001,
+    "sigma_max_s_m": 2.0,
+    "noise_std_v": 0.0,
+    "seed": 16
+  },
+  "units": {
+    "length": "m",
+    "frequency": "Hz",
+    "current": "A RMS",
+    "voltage": "V RMS",
+    "conductivity": "S/m",
+    "permittivity": "F/m",
+    "relative_permittivity": "1",
+    "contact_impedance": "ohm m^2",
+    "contact_capacitance": "F/m^2",
+    "relaxation_time": "s",
+    "phase": "degree",
+    "phasor_convention": "exp(+j omega t)"
+  }
+}

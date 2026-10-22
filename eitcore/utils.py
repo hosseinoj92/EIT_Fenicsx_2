@@ -53,13 +53,13 @@ def interpolate_mesh_to_mesh(x, mesh_pos1, mesh_pos2, method="nearest"):
 
     nearest = NearestNDInterpolator(mesh_pos1, x)
     if method == "nearest":
-        return nearest(mesh_pos2[:, 0], mesh_pos2[:, 1])
+        return nearest(mesh_pos2)
 
     linear = LinearNDInterpolator(mesh_pos1, x, fill_value=np.nan)
-    sigma = linear(mesh_pos2[:, 0], mesh_pos2[:, 1])
+    sigma = linear(mesh_pos2)
     bad = ~np.isfinite(sigma)
     if np.any(bad):
-        sigma[bad] = nearest(mesh_pos2[bad, 0], mesh_pos2[bad, 1])
+        sigma[bad] = nearest(mesh_pos2[bad])
     return sigma
 
 

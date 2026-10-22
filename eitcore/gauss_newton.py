@@ -480,11 +480,11 @@ class GaussNewtonSolverTV(_GaussNewtonBase):
         and the memory footprint.
         """
         topo = self.eit_solver.omega.topology
-        topo.create_connectivity(1, 2)  # facet -> cell
+        topo.create_connectivity(topo.dim - 1, topo.dim)  # facet -> cell
 
-        edge_to_cell = topo.connectivity(1, 2)
-        num_facets = topo.index_map(1).size_local
-        num_cells = topo.index_map(2).size_local
+        edge_to_cell = topo.connectivity(topo.dim - 1, topo.dim)
+        num_facets = topo.index_map(topo.dim - 1).size_local
+        num_cells = topo.index_map(topo.dim).size_local
 
         rows, cols, data = [], [], []
         row_idx = 0

@@ -164,7 +164,7 @@ def test_mesh():
           abs(el.mean() - expected) < 5e-3 * expected,
           f"mean={el.mean():.6f} expected={expected:.6f}")
     check("all electrodes have the same length on a symmetric disk",
-          el.ptp() / el.mean() < 1e-10, f"spread={el.ptp():.2e}")
+          np.ptp(el) / el.mean() < 1e-10, f"spread={np.ptp(el):.2e}")
 
     fine = mesh_info(build_mesh({"h_center": 0.10, "h_edge": 0.07}))
     check("smaller target size gives more cells",

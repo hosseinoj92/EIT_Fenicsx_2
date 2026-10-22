@@ -1,5 +1,39 @@
 # EIT Simulation & Reconstruction Framework
 
+## SI simulation in 2D and 3D
+
+Start the desktop configuration panel:
+
+```powershell
+python physical_eit.py --gui
+```
+
+Choose a circular 2D cross-section or a full 3D cylinder, configure circular
+electrodes per ring, ring heights/separation, diameters, current and excitation
+frequencies, then preview or run. Inputs carry physical units. The new workflow
+solves the complex complete electrode model, displays frequency response,
+and reconstructs conductivity and optionally permittivity on a separate mesh.
+On Windows the panel uses FEniCSx in the default WSL distribution if the local
+Python has no FEniCSx.
+
+Ready-to-run configurations and full model/unit documentation:
+
+- [2D example](examples/physical_2d.json)
+- [3D electrode-ring example](examples/physical_3d.json)
+- [SI workflow, physics, installation and experimental comparisons](docs/PHYSICAL_EIT.md)
+- [104 mm column with 256 electrodes: input and reproducible algorithm comparison](docs/COLUMN_BENCHMARK.md)
+
+```bash
+python physical_eit.py --config examples/physical_3d.json --validate
+# Run in a Python environment containing FEniCSx (or prefix with wsl --exec):
+python physical_eit.py --config examples/physical_3d.json
+python tests/test_physical.py
+```
+
+The original real-valued 2D algorithm benchmarking workflow is described below.
+Its ground-truth bundles and algorithms retain their existing defaults; the
+SI AC workflow has its own explicit configuration and complex-data format.
+
 A Python framework for simulating **Electrical Impedance Tomography** data on a
 cylindrical test cell and benchmarking reconstruction algorithms against a
 known ground truth.

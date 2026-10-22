@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+# Regenerable mesh cache and SI run artifacts (tracked reference data is retained).
+/data/meshes/*.msh
+/results/physical/
+/results/physical_configs/
+/results/physical_gui*.png
+/results/physical_*validation.log
+/results/column_104mm_256e/

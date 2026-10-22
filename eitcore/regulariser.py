@@ -53,7 +53,7 @@ def build_smoothness_regulariser(omega, corrlength: float = 1.0, std: float = 0.
     the significant digits on an ill-conditioned covariance).
     """
     V = functionspace(omega, ("DG", 0))
-    g = np.array(V.tabulate_dof_coordinates()[:, :2], dtype=float)
+    g = np.array(V.tabulate_dof_coordinates()[:, :omega.topology.dim], dtype=float)
     ng = g.shape[0]
 
     var = std**2
@@ -93,11 +93,11 @@ def build_gradient_matrix(omega):
     per interior facet with ``+1`` / ``-1`` in the two adjacent cells.
     """
     topo = omega.topology
-    topo.create_connectivity(1, 2)
-    edge_to_cell = topo.connectivity(1, 2)
+    topo.create_connectivity(topo.dim - 1, topo.dim)
+    edge_to_cell = topo.connectivity(topo.dim - 1, topo.dim)
 
-    num_facets = topo.index_map(1).size_local
-    num_cells = topo.index_map(2).size_local
+    num_facets = topo.index_map(topo.dim - 1).size_local
+    num_cells = topo.index_map(topo.dim).size_local
 
     rows, cols, data = [], [], []
     row = 0
@@ -124,7 +124,7 @@ def build_laplacian_regulariser(omega, eps: float = 1e-4):
 
 
 def build_tikhonov_regulariser(omega):
-    n = omega.topology.index_map(2).size_local
+    n = omega.topology.index_map(omega.topology.dim).size_local
     return sparse_eye(n, format="csr")
 
 
@@ -149,7 +149,7 @@ def build_prior(omega, kind="laplacian", **kwargs):
 
     if kind == "gaussian":
         cache = kwargs.get("cache_file")
-        n = omega.topology.index_map(2).size_local
+        n = omega.topology.index_map(omega.topology.dim).size_local
         L = None
         if cache is not None:
             try:

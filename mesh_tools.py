@@ -43,12 +43,24 @@ import hashlib
 import json
 import os
 import pathlib
+import warnings
 
 import numpy as np
 
 #: Every meshing parameter and its default.  Anything absent from a user
 #: dictionary falls back to the value here.
 DEFAULT_MESH = {
+    "dimension": 2,
+    "height": 0.10,                 # cylinder height [m], 3D only
+    "electrodes_per_ring": 16,
+    "n_rings": 2,
+    "ring_spacing": 0.03,           # centre-to-centre [m]
+    "ring_z": None,                 # optional explicit ring heights [m]
+    "ring_rotation_deg": 0.0,       # incremental rotation between rings
+    "electrode_diameter": 0.01,     # circular projected footprint [m]
+    "electrode_mesh_size": None,   # local contact resolution [m]
+    "refinement_z": None,          # optional axial refinement interval [m]
+    "h_band": None,                # target size inside that interval [m]
     "radius": 1.0,
     "n_electrodes": 16,
     "electrode_width_deg": 12.0,
@@ -66,12 +78,15 @@ DEFAULT_MESH = {
 #: The ground truth and the reconstruction must agree on these, otherwise the
 #: reconstruction is solving for a different experiment than the one measured.
 GEOMETRY_KEYS = ("radius", "n_electrodes", "electrode_width_deg",
-                 "electrode_offset_deg")
+                 "electrode_offset_deg", "dimension", "height",
+                 "electrodes_per_ring", "n_rings", "ring_spacing", "ring_z",
+                 "ring_rotation_deg", "electrode_diameter")
 
 #: Parameters that only change how finely the same cell is discretised.
 #: These are free to differ between the truth mesh and the reconstruction mesh.
 DISCRETISATION_KEYS = ("n_per_electrode", "n_per_gap", "h_center", "h_edge",
-                       "grading", "algorithm", "optimize")
+                       "grading", "algorithm", "optimize", "electrode_mesh_size",
+                       "refinement_z", "h_band")
 
 
 def _merge(cfg):
@@ -89,16 +104,56 @@ def _merge(cfg):
 
     out = dict(DEFAULT_MESH)
     out.update(cfg)
+    if out["dimension"] == 3:
+        total = out["electrodes_per_ring"] * out["n_rings"]
+        if "n_electrodes" in cfg and cfg["n_electrodes"] != total:
+            raise ValueError("n_electrodes must equal electrodes_per_ring * n_rings")
+        out["n_electrodes"] = total
     _validate(out)
+    for key in ("dimension", "n_electrodes", "electrodes_per_ring", "n_rings", "n_per_electrode", "n_per_gap"):
+        out[key] = int(out[key])
     return out
 
 
 def _validate(cfg):
+    if cfg["dimension"] not in (2, 3):
+        raise ValueError("dimension must be 2 or 3")
+    for k, v in cfg.items():
+        if isinstance(v, (float, int)) and not np.isfinite(v):
+            raise ValueError(f"{k} must be finite")
+    for k in ("n_electrodes", "electrodes_per_ring", "n_rings", "n_per_electrode", "n_per_gap"):
+        if int(cfg[k]) != cfg[k]:
+            raise ValueError(f"{k} must be an integer")
+    for key in ("electrode_mesh_size", "h_band"):
+        if cfg[key] is not None and (not np.isfinite(cfg[key]) or cfg[key] <= 0):
+            raise ValueError(f"{key} must be a positive finite length [m]")
+    if cfg["refinement_z"] is not None:
+        zs = np.asarray(cfg["refinement_z"], dtype=float)
+        if zs.shape != (2,) or not np.all(np.isfinite(zs)) or not 0 <= zs[0] < zs[1] <= cfg["height"]:
+            raise ValueError("refinement_z must be an increasing interval inside the column [m]")
+        if cfg["h_band"] is None:
+            raise ValueError("refinement_z requires h_band [m]")
     if cfg["radius"] <= 0:
         raise ValueError("radius must be positive")
     L = int(cfg["n_electrodes"])
     if L < 4:
         raise ValueError(f"n_electrodes must be at least 4, got {L}")
+    if cfg["dimension"] == 3:
+        n, nr, d, R = (cfg[k] for k in
+                      ("electrodes_per_ring", "n_rings", "electrode_diameter", "radius"))
+        if n < 4 or nr < 1 or cfg["height"] <= 0 or not 0 < d < 2 * R:
+            raise ValueError("3D needs >=4 electrodes/ring, >=1 ring, positive height and 0 < diameter < 2*radius")
+        zs = ring_heights(cfg)
+        if len(zs) != nr or not np.all(np.isfinite(zs)):
+            raise ValueError("ring_z must contain n_rings finite heights [m]")
+        if np.any(zs - d / 2 <= 0) or np.any(zs + d / 2 >= cfg["height"]):
+            raise ValueError("Electrode footprints must fit strictly between cylinder end caps")
+        if nr > 1 and np.any(np.diff(zs) <= d):
+            raise ValueError("Ring heights must increase with separation greater than electrode diameter")
+        if d >= 2 * R * np.sin(np.pi / n):
+            raise ValueError("Circular electrodes overlap around a ring; reduce diameter")
+        return _validate(dict(cfg, dimension=2, n_electrodes=n,
+                              electrode_width_deg=min(cfg["electrode_width_deg"], 180/n)))
     sector = 360.0 / L
     if not 0 < cfg["electrode_width_deg"] < sector:
         raise ValueError(
@@ -132,7 +187,7 @@ def mesh_signature(cfg):
 def mesh_filename(cfg, out_dir="data/meshes"):
     c = _merge(cfg)
     name = (
-        f"disk_R{c['radius']:g}_L{c['n_electrodes']}"
+        f"{'cylinder' if c['dimension'] == 3 else 'disk'}_R{c['radius']:g}_L{c['n_electrodes']}"
         f"_h{c['h_center']:g}-{c['h_edge']:g}"
         f"_{mesh_signature(cfg)}.msh"
     )
@@ -168,6 +223,12 @@ def electrode_spans(cfg):
 def electrode_centres(cfg):
     """``(L, 2)`` Cartesian centres of the electrodes, for plotting."""
     c = _merge(cfg)
+    if c["dimension"] == 3:
+        n = c["electrodes_per_ring"]
+        return np.array([[c["radius"] * np.cos(a), c["radius"] * np.sin(a), z]
+                         for j, z in enumerate(ring_heights(c))
+                         for a in np.deg2rad(c["electrode_offset_deg"] + j*c["ring_rotation_deg"])
+                         + 2*np.pi*np.arange(n)/n])
     L = int(c["n_electrodes"])
     offset = np.deg2rad(c["electrode_offset_deg"])
     ang = offset + 2 * np.pi * np.arange(L) / L
@@ -177,6 +238,107 @@ def electrode_centres(cfg):
 # --------------------------------------------------------------------------- #
 #  generation
 # --------------------------------------------------------------------------- #
+def ring_heights(cfg):
+    """Ring centres [m], numbered bottom to top; default stack is centred."""
+    if cfg.get("ring_z") is not None:
+        return np.asarray(cfg["ring_z"], dtype=float)
+    n = cfg["n_rings"]
+    return cfg["height"] / 2 + (np.arange(n) - (n - 1) / 2) * cfg["ring_spacing"]
+
+
+def _optimize_mesh(gmsh):
+    try:
+        gmsh.model.mesh.optimize("Netgen")
+    except Exception as exc:
+        if "not compiled" not in str(exc):
+            raise
+        warnings.warn("This Gmsh build has no Netgen optimizer; using the built-in optimizer", stacklevel=2)
+        gmsh.model.mesh.optimize("")
+
+
+def _build_cylinder(cfg, out_dir, force, verbose):
+    """Conformal tetrahedra with circular electrode footprints on the sidewall.
+
+    A radial cylinder imprints each disk onto the curved wall. Diameter is
+    measured in the tangent-plane projection (not a flat polygon on the wall).
+    Internal Boolean interfaces remain conformal, with identical material on
+    both sides. All retained volumes belong to the same physical domain.
+    """
+    import gmsh
+
+    path = mesh_filename(cfg, out_dir)
+    if os.path.exists(path) and not force:
+        return path
+    pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
+    gmsh.initialize()
+    try:
+        gmsh.option.setNumber("General.Terminal", int(verbose))
+        gmsh.model.add("eit_cylinder")
+        occ = gmsh.model.occ
+        R, d = cfg["radius"], cfg["electrode_diameter"]
+        cylinder = occ.addCylinder(0, 0, 0, 0, 0, cfg["height"], R)
+        tools = []
+        for x, y, z in electrode_centres(cfg):
+            nx, ny = x / R, y / R
+            t = occ.addCylinder((R-d/2)*nx, (R-d/2)*ny, z,
+                                d*nx, d*ny, 0, d/2)
+            tools.append((3, t))
+        fragments, mapping = occ.fragment([(3, cylinder)], tools)
+        domain = set(mapping[0])
+        electrode_volumes = [domain.intersection(parts) for parts in mapping[1:]]
+        occ.remove([v for v in fragments if v not in domain], recursive=True)
+        occ.synchronize()
+        boundary = set(gmsh.model.getBoundary(list(domain), combined=True, oriented=False))
+        used = set()
+        electrodes = []
+        for i, parts in enumerate(electrode_volumes):
+            patch = boundary.intersection(gmsh.model.getBoundary(
+                list(parts), combined=True, oriented=False))
+            if not patch or used.intersection(patch):
+                raise RuntimeError(f"Invalid or overlapping electrode footprint {i+1}")
+            used.update(patch)
+            tags = [t for dim, t in patch if dim == 2]
+            electrodes.extend(tags)
+            gmsh.model.addPhysicalGroup(2, tags, i+1, name=f"Electrode{i+1}")
+        free = [t for dim, t in boundary - used if dim == 2]
+        gmsh.model.addPhysicalGroup(2, free, 0, name="Insulating")
+        gmsh.model.addPhysicalGroup(3, [t for dim, t in domain], 1, name="domain")
+        field = gmsh.model.mesh.field.add("MathEval")
+        gmsh.model.mesh.field.setString(field, "F",
+            f"{cfg['h_center']} + ({cfg['h_edge']}-{cfg['h_center']})"
+            f"*(sqrt(x*x+y*y)/{R})^{cfg['grading']}")
+        distance = gmsh.model.mesh.field.add("Distance")
+        gmsh.model.mesh.field.setNumbers(distance, "SurfacesList", electrodes)
+        threshold = gmsh.model.mesh.field.add("Threshold")
+        local_h = cfg["electrode_mesh_size"] or min(cfg["h_edge"], d/4)
+        for key, val in {"InField": distance, "SizeMin": local_h,
+                         "SizeMax": cfg["h_center"], "DistMin": d/4,
+                         "DistMax": 2*d}.items():
+            gmsh.model.mesh.field.setNumber(threshold, key, val)
+        fields = [field, threshold]
+        if cfg["refinement_z"] is not None:
+            box = gmsh.model.mesh.field.add("Box")
+            for key, val in {"VIn": cfg["h_band"], "VOut": max(cfg["h_center"], cfg["h_edge"]),
+                             "XMin": -R, "XMax": R, "YMin": -R, "YMax": R,
+                             "ZMin": cfg["refinement_z"][0], "ZMax": cfg["refinement_z"][1],
+                             "Thickness": 0.01}.items():
+                gmsh.model.mesh.field.setNumber(box, key, val)
+            fields.append(box)
+        minimum = gmsh.model.mesh.field.add("Min")
+        gmsh.model.mesh.field.setNumbers(minimum, "FieldsList", fields)
+        gmsh.model.mesh.field.setAsBackgroundMesh(minimum)
+        gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
+        gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
+        gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
+        gmsh.model.mesh.generate(3)
+        if cfg["optimize"]:
+            _optimize_mesh(gmsh)
+        gmsh.write(path)
+    finally:
+        gmsh.finalize()
+    return path
+
+
 def build_mesh(cfg, out_dir="data/meshes", force=False, verbose=False):
     """
     Generate (or reuse from cache) the ``.msh`` described by ``cfg``.
@@ -185,6 +347,8 @@ def build_mesh(cfg, out_dir="data/meshes", force=False, verbose=False):
     ``EIT(mesh_name=...)`` so there is exactly one source of truth.
     """
     cfg = _merge(cfg)
+    if cfg["dimension"] == 3:
+        return _build_cylinder(cfg, out_dir, force, verbose)
     path = mesh_filename(cfg, out_dir)
 
     if os.path.exists(path) and not force:
@@ -270,7 +434,7 @@ def build_mesh(cfg, out_dir="data/meshes", force=False, verbose=False):
 
         gmsh.model.mesh.generate(2)
         if cfg["optimize"]:
-            gmsh.model.mesh.optimize("Netgen")
+            _optimize_mesh(gmsh)
 
         gmsh.write(path)
     finally:
@@ -279,14 +443,31 @@ def build_mesh(cfg, out_dir="data/meshes", force=False, verbose=False):
     return path
 
 
-def mesh_info(path):
+def mesh_info(path, dimension=2):
     """Cell/node counts, element sizes and triangle quality of a ``.msh``."""
     from mpi4py import MPI
-    from dolfinx.io import gmshio
+    try:
+        from dolfinx.io import gmshio
+    except ImportError:
+        from dolfinx.io import gmsh as gmshio
 
-    domain, _, _ = gmshio.read_from_msh(path, MPI.COMM_WORLD, gdim=2)
-    n_cells = domain.topology.index_map(2).size_local
+    data = gmshio.read_from_msh(path, MPI.COMM_WORLD, gdim=dimension)
+    domain = data.mesh if hasattr(data, "mesh") else data[0]
+    n_cells = domain.topology.index_map(dimension).size_local
     n_nodes = domain.geometry.x.shape[0]
+
+    if dimension == 3:
+        from itertools import combinations
+        cells = np.asarray(domain.geometry.dofmap).reshape((-1, 4))
+        p = domain.geometry.x[cells]
+        edges = np.array([np.linalg.norm(p[:, i]-p[:, j], axis=1)
+                          for i, j in combinations(range(4), 2)])
+        volumes = np.abs(np.linalg.det(p[:, 1:]-p[:, :1]))/6
+        quality = 12*(3*volumes)**(2/3)/np.sum(edges**2, axis=0)
+        return {"path": path, "dimension": 3, "n_cells": int(n_cells),
+                "n_nodes": int(n_nodes), "h_min": float(edges.min()),
+                "h_max": float(edges.max()), "volume": float(volumes.sum()),
+                "quality_min": float(quality.min()), "quality_mean": float(quality.mean())}
 
     xy = domain.geometry.x[:, :2]
     cells = np.asarray(domain.geometry.dofmap).reshape((-1, 3))
@@ -315,8 +496,13 @@ def mesh_info(path):
 
 def describe(cfg, out_dir="data/meshes"):
     """Build the mesh and return a one-line human-readable report."""
-    info = mesh_info(build_mesh(cfg, out_dir=out_dir))
     c = _merge(cfg)
+    info = mesh_info(build_mesh(c, out_dir=out_dir), dimension=c["dimension"])
+    if c["dimension"] == 3:
+        ideal = np.pi*c["radius"]**2*c["height"]
+        return (f"cells={info['n_cells']:6d}  nodes={info['n_nodes']:6d}  "
+                f"volume={info['volume']:.6g} m^3 (exact {ideal:.6g})  "
+                f"quality min/mean={info['quality_min']:.2f}/{info['quality_mean']:.2f}")
     ideal = np.pi * c["radius"] ** 2
     return (
         f"cells={info['n_cells']:6d}  nodes={info['n_nodes']:6d}  "

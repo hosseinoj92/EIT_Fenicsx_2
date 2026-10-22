@@ -1,0 +1,158 @@
+{
+  "name": "column_104mm_256e_insulating_sphere",
+  "output_root": "results/physical",
+  "mesh": {
+    "dimension": 3,
+    "height": 0.5,
+    "electrodes_per_ring": 32,
+    "n_rings": 8,
+    "ring_spacing": 0.015,
+    "ring_z": [
+      0.22,
+      0.235,
+      0.25,
+      0.265,
+      0.28,
+      0.295,
+      0.31,
+      0.325
+    ],
+    "ring_rotation_deg": 0.0,
+    "electrode_diameter": 0.002,
+    "electrode_mesh_size": 0.0004,
+    "refinement_z": [
+      0.2,
+      0.35
+    ],
+    "h_band": 0.0045,
+    "radius": 0.052,
+    "n_electrodes": 256,
+    "electrode_width_deg": 14.0,
+    "electrode_offset_deg": 0.0,
+    "n_per_electrode": 10,
+    "n_per_gap": 5,
+    "h_center": 0.009,
+    "h_edge": 0.005,
+    "grading": 1.0,
+    "algorithm": 6,
+    "optimize": true
+  },
+  "thickness": 0.02,
+  "frequencies_hz": [
+    1000.0,
+    10000.0,
+    100000.0
+  ],
+  "drive": {
+    "protocol": "mixed",
+    "current_a": 0.001,
+    "stride": 4
+  },
+  "contact": {
+    "resistance_ohm_m2": 0.005,
+    "capacitance_f_m2": 0.0
+  },
+  "background": {
+    "conductivity_s_m": 0.05,
+    "relative_permittivity": 78.3
+  },
+  "inclusions": [
+    {
+      "shape": "sphere",
+      "center_m": [
+        0.0007292220873354067,
+        0.0009126446308762588,
+        0.2582148429552654
+      ],
+      "radius_m": 0.012,
+      "material": {
+        "conductivity_s_m": 0.0,
+        "relative_permittivity": 3.0
+      }
+    }
+  ],
+  "reconstruction": {
+    "enabled": true,
+    "frequency_hz": 10000.0,
+    "reconstruct_permittivity": false,
+    "h_center": 0.016,
+    "h_edge": 0.009,
+    "iterations": 4,
+    "regularization": 0.01,
+    "sigma_min_s_m": 1e-07,
+    "sigma_max_s_m": 0.1,
+    "noise_std_v": 0.0,
+    "seed": 20261022,
+    "algorithms": [
+      "linear",
+      "gn",
+      "tv",
+      "l1",
+      "dbar"
+    ],
+    "frequencies_hz": [
+      1000.0,
+      10000.0,
+      100000.0
+    ],
+    "h_band": 0.008,
+    "electrode_mesh_size": 0.00065,
+    "linear_regularization": 0.02,
+    "tv_regularization": 0.002,
+    "tv_beta": 0.01,
+    "l1_alpha": 0.0001,
+    "l1_iterations": 1500,
+    "measurement_stride": 2,
+    "exclude_driven": true,
+    "jacobian_chunk": 8,
+    "parameter_grid": {
+      "nx": 12,
+      "ny": 12,
+      "z_edges_m": [
+        0,
+        0.05,
+        0.1,
+        0.15,
+        0.19,
+        0.205,
+        0.22,
+        0.23,
+        0.24,
+        0.25,
+        0.26,
+        0.27,
+        0.28,
+        0.29,
+        0.3,
+        0.31,
+        0.32,
+        0.33,
+        0.34,
+        0.355,
+        0.38,
+        0.42,
+        0.46,
+        0.5
+      ]
+    },
+    "threads": 4,
+    "refinement_check": true,
+    "output_directory": "results/column_104mm_256e/run01",
+    "refinement_factor": 0.75,
+    "refinement_drives": 16
+  },
+  "units": {
+    "length": "m",
+    "frequency": "Hz",
+    "current": "A RMS",
+    "voltage": "V RMS",
+    "conductivity": "S/m",
+    "permittivity": "F/m",
+    "relative_permittivity": "1",
+    "contact_impedance": "ohm m^2",
+    "contact_capacitance": "F/m^2",
+    "relaxation_time": "s",
+    "phase": "degree",
+    "phasor_convention": "exp(+j omega t)"
+  }
+}
